@@ -1,0 +1,130 @@
+---
+title: "Map Practice"
+author: "Paloma Cartwright"
+date: "30/09/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(sf)
+library(raster)
+library(dplyr)
+library(spData)
+library(spDataLarge)
+library(tmap)    # for static and interactive maps
+library(leaflet) # for interactive maps
+library(tidyverse) 
+```
+
+## Making Maps 
+
+This is more practice making maps that I needed to do. 
+
+### Styling Maps 
+
+Using `palette` to add colors to the map 
+
+```{r}
+tm_shape(nz) + tm_polygons("Population", palette = "Blues")
+tm_shape(nz) + tm_polygons("Population", palette = "YlOrBr")
+```
+
+
+### Adding a Compass and Scale 
+
+use `tm_compass()` and `tm_scale_bar()` to add a compass and a scale to the map. 
+
+```{r}
+map_nz = tm_shape(nz) + tm_polygons()
+map_nz + 
+  tm_compass(type = "8star", position = c("left", "top")) +
+  tm_scale_bar(breaks = c(0, 100, 200), text.size = 1)
+```
+
+### Changing more layout things 
+
+`tm_layout()` has a ton of functions that can be used to change the layout of the maps. 
+`tm_style()` has a bunch of different styles. Run `tm_stylecatalogue()` to see what they all are. 
+
+### Using urban_agglomerations
+
+```{r}
+urb_1970_2030 = urban_agglomerations %>% 
+  filter(year %in% c(1970, 1990, 2010, 2030))
+
+tm_shape(world)+
+  tm_polygons() +
+  tm_shape(urb_1970_2030) + 
+  tm_symbols(col = "black", border.col = "white", size = "population_millions")+
+  tm_facets(by = "year", nrow = 2, free.coords = FALSE)
+```
+## Creating an Inset Map 
+
+### Step 1: Creating the Region
+```{r}
+nz_region = st_bbox(c(xmin = 1340000, xmax = 1450000,
+                      ymin = 5130000, ymax = 5210000),
+                    crs = st_crs(nz_height)) %>% 
+  st_as_sfc()
+```
+
+
+### Step 2: Creating the Base Map 
+
+```{r}
+nz_height_map = tm_shape(nz_elev, bbox = nz_region) +
+  tm_raster(style = "cont", palette = "YlGn", legend.show = TRUE) +
+  tm_shape(nz_height) + tm_symbols(shape = 2, col = "red", size = 1) +
+  tm_scale_bar(position = c("left", "bottom"))
+```
+
+### Step 3: Creating the Inset Map
+
+```{r}
+nz_map = tm_shape(nz) + tm_polygons() +
+  tm_shape(nz_height) + tm_symbols(shape = 2, col = "red", size = 0.1) + 
+  tm_shape(nz_region) + tm_borders(lwd = 3) 
+```
+
+### Step 4: Combining the Parts 
+
+You combine the parts using the `viewport()` function. 
+
+```{r}
+library(grid)
+nz_height_map
+print(nz_map, vp = viewport(x = 0.8, y = 0.27, width = 0.5, height = 0.5)) 
+
+```
+
+
+## Making an inset map of the US 
+
+### Continental US 
+
+```{r}
+us_states_map = tm_shape(us_states, projection = 2163) + tm_polygons() + 
+  tm_layout(frame = FALSE)
+us_states_map
+```
+
+### Hawaii and Alaska 
+
+```{r}
+hawaii_map = tm_shape(hawaii) + tm_polygons() + 
+  tm_layout(title = "Hawaii", frame = FALSE, bg.color = NA, 
+            title.position = c("LEFT", "BOTTOM"))
+alaska_map = tm_shape(alaska) + tm_polygons() + 
+  tm_layout(title = "Alaska", frame = FALSE, bg.color = NA)
+```
+
+### Combining all of them 
+
+```{r}
+us_states_map
+print(hawaii_map, vp = grid::viewport(0.35, 0.1, width = 0.2, height = 0.1))
+print(alaska_map, vp = grid::viewport(0.15, 0.15, width = 0.3, height = 0.3))
+```
+
+
