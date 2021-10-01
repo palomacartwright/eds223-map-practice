@@ -1,0 +1,93 @@
+---
+title: "Animated Maps"
+author: "Paloma Cartwright"
+date: "10/1/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(sf)
+library(raster)
+library(dplyr)
+library(spData)
+library(spDataLarge)
+library(tmap)    # for static and interactive maps
+library(leaflet) # for interactive maps
+library(ggplot2) # tidyverse data visualization package
+library(mapview)
+```
+
+## This Document starts at Section 8.3 in Geocomputation with R 
+
+```{r}
+urb_anim = tm_shape(world) + tm_polygons() + 
+  tm_shape(urban_agglomerations) + tm_dots(size = "population_millions") +
+  tm_facets(along = "year", free.coords = FALSE)
+
+tmap_animation(urb_anim, filename = "urb_anim.gif", delay = 25)
+```
+## Interactice Maps 
+
+```{r}
+map_nz <- tm_shape(nz) + tm_polygons()
+```
+
+
+```{r}
+tmap_mode(mode = "view") 
+
+map_nz + tm_basemap(server = "OpenTopoMap")
+
+```
+
+
+```{r}
+world_coffee = left_join(world, coffee_data, by = "name_long")
+facets = c("coffee_production_2016", "coffee_production_2017")
+tm_shape(world_coffee) + tm_polygons(facets) + 
+  tm_facets(nrow = 1, sync = TRUE) # sync = true means that they have synchronized zoom and panning settings 
+```
+
+
+```{r}
+trails %>%
+  st_transform(st_crs(franconia)) %>%
+  st_intersection(franconia[franconia$district == "Oberfranken", ]) %>%
+  st_collection_extract("LINE") %>%
+  mapview::mapview(color = "red", lwd = 3, layer.name = "trails") +
+  mapview::mapview(franconia, zcol = "district", burst = TRUE) +
+  breweries
+```
+
+
+
+
+## Chapter 8 Exercises 
+
+```{r}
+africa = world %>% 
+  filter(continent == "Africa", !is.na(iso_a2)) %>% 
+  left_join(worldbank_df, by = "iso_a2") %>% 
+  dplyr::select(name, subregion, gdpPercap, HDI, pop_growth) %>% 
+  st_transform("+proj=aea +lat_1=20 +lat_2=-23 +lat_0=0 +lon_0=25")
+```
+
+```{r}
+zion = st_read((system.file("vector/zion.gpkg", package = "spDataLarge")))
+data(nlcd, package = "spDataLarge")
+```
+
+```{r}
+tmap_mode(mode = "plot")
+breaks = c(0, 0.55, 0.7, 1)
+tm_shape(africa) +
+  #tm_polygons(col = "HDI", breaks = breaks) +
+  tm_fill(col = "subregion")
+
+
+```
+
+
+
+
